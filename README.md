@@ -22,7 +22,6 @@ Run `python train_[model].py [model_type]`
 - DIEN: `python train_dien.py`
 - DSIN: `python train_dsin.py`
 - DotProduct: `python train_autoattention.py DotProduct`
-- AutoAttention: `python train_autoattention.py AutoAttention`
-- AutoAttention with Pruning: `python train_autoattention.py AutoAttention_Prun 0.5`
+- AutoAttention: `python train_autoattention.py AutoAttention_Prun 0.6`
 
 
