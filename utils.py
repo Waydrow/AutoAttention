@@ -13,7 +13,6 @@ DSIN_SESS_COUNT = 5
 DSIN_SESS_MAX_LEN = 10
 
 ROOT_DATA = '../data/'
-
 def cal_group_auc(labels, preds, user_id_list):
 	"""Calculate group auc"""
 
@@ -103,7 +102,9 @@ class auc_callback(tf.keras.callbacks.Callback):
 		return
 
 	def on_epoch_begin(self, epoch, logs={}):
+		
 		self.epoch_start_time = time.time()
+
 		return
 
 	def on_epoch_end(self, epoch, logs={}):
@@ -114,7 +115,13 @@ class auc_callback(tf.keras.callbacks.Callback):
 
 		# if self.is_prun:
 		# 	self.model.get_layer(self.prun_layer).set_weights(self.weights)
+		#with open('/cephfs/group/file-teg-datamining-wx-dm-intern/tianyihu/AutoAttention/weight.txt','ab') as f:
+		#	for i in range(3):
+		#		np.savetxt(f,self.model.get_layer(self.prun_layer).get_weights()[i],delimiter=',')
+		time1=time.time()
 		y_pred_test = self.model.predict(self.x_test, 2 ** 14)
+		time2=time.time()
+		print('predict time:%s ms'%((time2-time1)*1000))
 		test_loss = log_loss(self.y_test, y_pred_test)
 		# test_auc = roc_auc_score(self.y_test, y_pred_test)
 		test_auc = cal_group_auc(self.y_test, np.squeeze(y_pred_test), np.squeeze(self.x_test[1]))
@@ -141,17 +148,30 @@ class auc_callback(tf.keras.callbacks.Callback):
 			# print('********** Iter: ' + str(self.iter))
 			# print(weights)
 			fields_num = weights[0].shape[0]
-			prun_num = round(self.adaptive_sparse * fields_num)
-			tmp_weights = []
+			#prun_num = round(3 * self.adaptive_sparse * fields_num)
+			prun_num = round(2 * self.adaptive_sparse * fields_num)
+			tmp_weights1 = []
+			tmp_weights2 = []
+			tmp_weights3 = []
 			for i in weights[0]:
-				tmp_weights.append(abs(i[0]))
-
+				tmp_weights1.append(abs(i[0]))
+			for i in weights[1]:
+				tmp_weights2.append(abs(i[0]))
+			#for i in weights[2]:
+			#	tmp_weights3.append(abs(i[0]))
+			tmp_weights = tmp_weights1 + tmp_weights2 + tmp_weights3
 			threshold = sorted(tmp_weights)[:prun_num][-1]
 			for i, v in enumerate(weights[0]):
 				if abs(v[0]) <= threshold:
 					weights[0][i][0] = 0
-
+			for i, v in enumerate(weights[1]):
+				if abs(v[0]) <= threshold:
+					weights[1][i][0] = 0
+			#for i, v in enumerate(weights[2]):
+			#	if abs(v[0]) <= threshold:
+			#		weights[2][i][0] = 0
 			layer.set_weights(weights)
+
 			self.weights = weights
 
 			# if self.iter == 1300:
@@ -182,16 +202,28 @@ class prun_callback(tf.keras.callbacks.Callback):
 			# print('********** Iter: ' + str(self.iter))
 			# print(weights)
 			fields_num = weights[0].shape[0]
-			prun_num = round(self.adaptive_sparse * fields_num)
-			tmp_weights = []
+			#prun_num = round(3*self.adaptive_sparse * fields_num)
+			prun_num = round(2 * self.adaptive_sparse * fields_num)
+			tmp_weights1 = []
+			tmp_weights2 = []
+			tmp_weights3 = []
 			for i in weights[0]:
-				tmp_weights.append(abs(i[0]))
-
+				tmp_weights1.append(abs(i[0]))
+			for i in weights[1]:
+				tmp_weights2.append(abs(i[0]))
+			#for i in weights[2]:
+			#	tmp_weights3.append(abs(i[0]))
+			tmp_weights=tmp_weights1+tmp_weights2+tmp_weights3
 			threshold = sorted(tmp_weights)[:prun_num][-1]
 			for i, v in enumerate(weights[0]):
 				if abs(v[0]) <= threshold:
 					weights[0][i][0] = 0
-
+			for i, v in enumerate(weights[1]):
+				if abs(v[0]) <= threshold:
+					weights[1][i][0] = 0
+			#for i, v in enumerate(weights[2]):
+			#	if abs(v[0]) <= threshold:
+			#		weights[2][i][0] = 0
 			layer.set_weights(weights)
 			if self.iter % 1300 == 0:
 				layer.trainable = False

@@ -63,12 +63,12 @@ if __name__ == "__main__":
 			print('Start training DotProduct: ' + str(i))
 			log_path = ROOT_DATA + 'log/DotProduct_log_' + str(i) + '.txt'
 			best_model_path = ROOT_DATA + 'best_model/DotProduct.h5'
-			model = DotProduct(fd, sess_feature, embedding_size=16, hist_len_max=sess_len_max)
+			model= DotProduct(fd, sess_feature, embedding_size=16, hist_len_max=sess_len_max)
 		elif model_type == 'AutoAttention':
 			print('Start training AutoAttention: ' + str(i))
 			log_path = ROOT_DATA + 'log/AutoAttention_log_' + str(i) + '.txt'
 			best_model_path = ROOT_DATA + 'best_model/AutoAttention.h5'
-			model = AutoAttention(fd, sess_feature, embedding_size=16, hist_len_max=sess_len_max)
+			model= AutoAttention(fd, sess_feature, embedding_size=16, hist_len_max=sess_len_max)
 		elif model_type == 'AutoAttention_Prun':
 			is_prun = True
 			sparse_rate = float(sys.argv[2])

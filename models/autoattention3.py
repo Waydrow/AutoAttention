@@ -186,7 +186,7 @@ def DotProduct(feature_dim_dict, seq_feature_list, embedding_size=8, hist_len_ma
 
 
 class AutoAttention_Layer(Layer):
-    def __init__(self, maxlen, emb_dim, embed_reg=1e-4, weight_softmax=True, is_keys_diff=False, return_score=False):
+    def __init__(self, maxlen, emb_dim, embed_reg=1e-5, weight_softmax=True, is_keys_diff=False, return_score=False):
         super(AutoAttention_Layer, self).__init__()
         self.maxlen = maxlen
         self.emb_dim = emb_dim
@@ -204,6 +204,12 @@ class AutoAttention_Layer(Layer):
                                                dtype=tf.float32,
                                                trainable=True)
         self.field_strengths2 = self.add_weight(name='field_pair_strengths2',
+                                                shape=(q_shape[1], 1),
+                                                initializer=tf.keras.initializers.RandomNormal(),
+                                                regularizer=tf.keras.regularizers.l2(self.embed_reg),
+                                                dtype=tf.float32,
+                                                trainable=True)
+        self.field_strengths3 = self.add_weight(name='field_pair_strengths3',
                                                 shape=(q_shape[1], 1),
                                                 initializer=tf.keras.initializers.RandomNormal(),
                                                 regularizer=tf.keras.regularizers.l2(self.embed_reg),
@@ -243,23 +249,30 @@ class AutoAttention_Layer(Layer):
             q = tf.tensordot(q, self.W_query, axes=1)
             v = tf.tensordot(k, self.W_value, axes=1)
             # k = tf.tensordot(k, self.W_key, axes=1)
-        k0,k1=tf.split(k,2,axis=-1)
+        k0,k1,k2=tf.split(k,3,axis=-1)
+        #k0,k1=tf.split(k,2,axis=-1)
         q = tf.expand_dims(q, axis=1)  # (None, 1, m, K)
         q = tf.tile(q, multiples=[1, k0.shape[1], 1, 1])  # (None, maxlen, m, K)
         k0 = tf.expand_dims(k0, axis=2)  # (None, maxlen, 1, K)
         k0 = tf.tile(k0, multiples=[1, 1, q.shape[2], 1])  # (None, maxlen, m, K)
         k1 = tf.expand_dims(k1, axis=2)  # (None, maxlen, 1, K)
         k1 = tf.tile(k1, multiples=[1, 1, q.shape[2], 1])  # (None, maxlen, m, K)
+        k2 = tf.expand_dims(k2, axis=2)  # (None, maxlen, 1, K)
+        k2 = tf.tile(k2, multiples=[1, 1, q.shape[2], 1])  # (None, maxlen, m, K)
         a0 = q * k0
         a1 = q * k1
+        a2 = q * k2
         s0 = tf.expand_dims(self.field_strengths, axis=0)  # (1, m, 1)
         s0 = tf.tile(s0, multiples=[self.maxlen, 1, a0.shape[-1]])  # (maxlen, m, K)
         s1 = tf.expand_dims(self.field_strengths2, axis=0)  # (1, m, 1)
         s1 = tf.tile(s1, multiples=[self.maxlen, 1, a1.shape[-1]])  # (maxlen, m, K)
+        s2 = tf.expand_dims(self.field_strengths3, axis=0)  # (1, m, 1)
+        s2 = tf.tile(s2, multiples=[self.maxlen, 1, a1.shape[-1]])  # (maxlen, m, K)
         a0 = a0 * s0
         a1 = a1 * s1
-        a= a0 + a1
-        #a = Lambda(lambda x : x[0] + x[1])([a0,a1])
+        a2 = a2 * s2
+        a = a0 + a1 + a2
+        #a = a0 + a1
         a = tf.reduce_sum(a, axis=2) + self.bias  # (None, maxlen, K)
         a = tf.reduce_sum(a, axis=-1)  # (None, maxlen)
         a = tf.nn.sigmoid(a)  # (None, maxlen)
